@@ -7,15 +7,19 @@ def lambda_handler(event, context):
     bucket = event['Records'][0]['s3']['bucket']['name']
     key = event['Records'][0]['s3']['object']['key']
 
+        # 1. 追加されたファイルをpublic-readにする
+    s3 = boto3.client('s3')
+    s3.put_object_acl(Bucket=bucket, Key=key, ACL='public-read')
+
     # S3画像のパブリックURL生成
     region = os.environ.get('AWS_REGION', 'ap-southeast-1')
     image_url = f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
 
-    # OpenAI APIキー（Lambdaの環境変数などで管理推奨）
-    openai.api_key = os.environ.get('OPENAI_API_KEY')
+    # 新しいOpenAIクライアントの初期化
+    client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
     # ChatGPT Vision APIにリクエスト
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
             {
