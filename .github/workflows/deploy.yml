@@ -1,0 +1,47 @@
+name: Deploy Lambda
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install pytest
+        run: |
+          pip install pytest
+
+      - name: Install AWS SAM CLI
+        run: |
+          pip install aws-sam-cli
+
+      - name: Install dependencies
+        run: |
+          cd lambda_function
+          pip install -r requirements.txt -t .
+
+      - name: Run tests
+        run: |
+          PYTHONPATH=./ pytest tests/
+
+      - name: Build with SAM
+        run: sam build
+
+      - name: Deploy with SAM
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ap-southeast-1
+        run: |
+          sam deploy --region ap-southeast-1 --s3-bucket sam-deploy-micro-receipt-analyzer-bucket-new --no-confirm-changeset --no-fail-on-empty-changeset --stack-name micro-receipt-analyzer --capabilities CAPABILITY_IAM

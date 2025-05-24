@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Micro Receipt Analyzer Lambda
+
+# ★このテンプレート自体はリージョン非依存ですが、
+#   sam deploy 時に --region ap-southeast-1 を必ず指定してください。
+#   S3バケットもLambdaもシンガポールリージョンで作成されます。
+
+Resources:
+  ReceiptAnalyzerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.lambda_handler
+      Runtime: python3.11
+      CodeUri: lambda_function/
+      Timeout: 60
+      MemorySize: 256
+      Events:
+        S3UploadEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref ReceiptImageBucket
+            Events: s3:ObjectCreated:*
+
+  ReceiptImageBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+
+Outputs:
+  LambdaFunctionArn:
+    Description: ARN of the Lambda function
+    Value: !GetAtt ReceiptAnalyzerFunction.Arn
+  S3BucketName:
+    Description: Name of the S3 bucket for receipt images
+    Value: !Ref ReceiptImageBucket 
