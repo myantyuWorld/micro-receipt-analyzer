@@ -7,7 +7,7 @@ def lambda_handler(event, context):
     bucket = event['Records'][0]['s3']['bucket']['name']
     key = event['Records'][0]['s3']['object']['key']
 
-        # 1. 追加されたファイルをpublic-readにする
+    # 1. 追加されたファイルをpublic-readにする
     s3 = boto3.client('s3')
     s3.put_object_acl(Bucket=bucket, Key=key, ACL='public-read')
 
@@ -25,7 +25,7 @@ def lambda_handler(event, context):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "このレシート画像から、買った品物の名称・値段・合計金額をJSONで抽出してください。"},
+                    {"type": "text", "text": "このレシート画像から、買った品物一覧(items)の名称(name)・値段(price)・合計金額(total)をJSONで抽出してください。"},
                     {"type": "image_url", "image_url": {"url": image_url}}
                 ]
             }
@@ -35,4 +35,51 @@ def lambda_handler(event, context):
 
     result = response.choices[0].message.content
     print(result)
+
+    # ```json
+    # {
+    # "items": [
+    # {
+    #     "name": "大根",
+    #     "price": 105
+    # }
+    # ,
+    # {
+    #     "name": "たまねぎ",
+    #     "price": 105
+    # }
+    # ,
+    # {
+    #     "name": "チョコパンBB",
+    #     "price": 200
+    # }
+    # ,
+    # {
+    #     "name": "ISPポテトS",
+    #     "price": 150
+    # }
+    # ,
+    # {
+    #     "name": "はさソーダ500ML",
+    #     "price": 196
+    # }
+    # ,
+    # {
+    #     "name": "姫かま",
+    #     "price": 150
+    # }
+
+    # ],
+    # "discount": {
+    # "percentage": 20,
+    # "amount": -30
+    # },
+    # "total": 876
+    # }
+    # ```
+    # 
+    # 上記のような結果が得られたので、この結果を元に、バックエンド側にAPIリクエストして、結果を登録する
+    # 
+    # TODO: /openai/receipt/analyze-result にPOSTリクエストして、結果を登録する
+    # 
     return {"result": result} 
