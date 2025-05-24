@@ -1,40 +1,34 @@
+import openai
 import boto3
-
-def parse_receipt(expense_documents):
-    items = []
-    total = None
-    for doc in expense_documents:
-        # 合計金額
-        for field in doc.get('SummaryFields', []):
-            if field.get('Type', {}).get('Text') == 'TOTAL':
-                total = field.get('ValueDetection', {}).get('Text')
-        # 商品ごとの明細
-        for group in doc.get('LineItemGroups', []):
-            for line_item in group.get('LineItems', []):
-                item = {}
-                for expense_field in line_item.get('LineItemExpenseFields', []):
-                    field_type = expense_field.get('Type', {}).get('Text')
-                    value = expense_field.get('ValueDetection', {}).get('Text')
-                    if field_type == 'ITEM':
-                        item['name'] = value
-                    elif field_type == 'PRICE':
-                        item['price'] = value
-                    elif field_type == 'QUANTITY':
-                        item['quantity'] = value
-                if item:
-                    items.append(item)
-    return {'items': items, 'total': total}
+import os
 
 def lambda_handler(event, context):
-    # S3イベントからバケット名とキーを取得
-    record = event['Records'][0]
-    bucket = record['s3']['bucket']['name']
-    key = record['s3']['object']['key']
+    # S3イベントからバケット名・キー取得
+    bucket = event['Records'][0]['s3']['bucket']['name']
+    key = event['Records'][0]['s3']['object']['key']
 
-    textract = boto3.client('textract')
-    response = textract.analyze_expense(
-        Document={'S3Object': {'Bucket': bucket, 'Name': key}}
+    # S3画像のパブリックURL生成
+    region = os.environ.get('AWS_REGION', 'ap-southeast-1')
+    image_url = f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
+
+    # OpenAI APIキー（Lambdaの環境変数などで管理推奨）
+    openai.api_key = os.environ.get('OPENAI_API_KEY')
+
+    # ChatGPT Vision APIにリクエスト
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "このレシート画像から、買った品物の名称・値段・合計金額をJSONで抽出してください。"},
+                    {"type": "image_url", "image_url": {"url": image_url}}
+                ]
+            }
+        ],
+        max_tokens=1024
     )
-    result = parse_receipt(response.get('ExpenseDocuments', []))
+
+    result = response.choices[0].message.content
     print(result)
-    return result 
+    return {"result": result} 

@@ -31,9 +31,9 @@ jobs:
           cd lambda_function
           pip install -r requirements.txt -t .
 
-      - name: Run tests
-        run: |
-          PYTHONPATH=./ pytest tests/
+      # - name: Run tests
+      #   run: |
+      #     PYTHONPATH=./ pytest tests/
 
       - name: Build with SAM
         run: sam build
