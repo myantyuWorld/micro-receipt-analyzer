@@ -1,29 +1,40 @@
 import openai
 import boto3
 import os
-import time
+import tempfile
+from botocore.config import Config
+
 def lambda_handler(event, context):
     # S3イベントからバケット名・キー取得
     bucket = event['Records'][0]['s3']['bucket']['name']
     key = event['Records'][0]['s3']['object']['key']
 
+    # S3クライアントの設定（タイムアウト対策）
+    config = Config(
+        connect_timeout=5,
+        read_timeout=10,
+        retries={'max_attempts': 3}
+    )
+    s3 = boto3.client('s3', config=config)
+
     # 1. 追加されたファイルをpublic-readにする
-    s3 = boto3.client('s3')
     s3.put_object_acl(Bucket=bucket, Key=key, ACL='public-read')
 
-    # S3画像のパブリックURL生成
-    region = os.environ.get('AWS_REGION', 'ap-southeast-1')
-    image_url = f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
-
-    # 数秒まつ
-    time.sleep(10)
+    # 2. 一時ファイルにダウンロード
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        try:
+            s3.download_file(bucket, key, temp_file.name)
+            image_url = f"file://{temp_file.name}"
+        except Exception as e:
+            print(f"Error downloading file: {str(e)}")
+            raise
 
     # 新しいOpenAIクライアントの初期化
     client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
     # ChatGPT Vision APIにリクエスト
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4-vision-preview",
         messages=[
             {
                 "role": "user",
@@ -38,6 +49,9 @@ def lambda_handler(event, context):
 
     result = response.choices[0].message.content
     print(result)
+
+    # 一時ファイルの削除
+    os.unlink(temp_file.name)
 
     # ```json
     # {
