@@ -1,7 +1,7 @@
 import openai
 import boto3
 import os
-
+import time
 def lambda_handler(event, context):
     # S3イベントからバケット名・キー取得
     bucket = event['Records'][0]['s3']['bucket']['name']
@@ -14,6 +14,9 @@ def lambda_handler(event, context):
     # S3画像のパブリックURL生成
     region = os.environ.get('AWS_REGION', 'ap-southeast-1')
     image_url = f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
+
+    # 数秒まつ
+    time.sleep(10)
 
     # 新しいOpenAIクライアントの初期化
     client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
