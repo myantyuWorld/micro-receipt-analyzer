@@ -3,11 +3,20 @@ import boto3
 import os
 import tempfile
 from botocore.config import Config
+import re
 
 def lambda_handler(event, context):
     # S3イベントからバケット名・キー取得
     bucket = event['Records'][0]['s3']['bucket']['name']
+    # uuid-household_id-yyyyMMddHHmmss.jpg
     key = event['Records'][0]['s3']['object']['key']
+    
+    # household_idを抽出（正規表現で安全に）
+    m = re.match(r"^[a-f0-9-]+-(.+?)-\d{14}\.jpg$", key)
+    if m:
+        household_id = m.group(1)
+    else:
+        raise ValueError(f"Invalid S3 key format: {key}. Expected format: uuid-household_id-yyyyMMddHHmmss.jpg")
 
     # S3クライアントの設定（タイムアウト対策）
     config = Config(
@@ -92,5 +101,7 @@ def lambda_handler(event, context):
     # 上記のような結果が得られたので、この結果を元に、バックエンド側にAPIリクエストして、結果を登録する
     # 
     # TODO: /openai/receipt/analyze-result にPOSTリクエストして、結果を登録する
+    # この時、keyから抽出したhousehold_idを使用する
     # 
+
     return {"result": result} 

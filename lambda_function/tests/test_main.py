@@ -18,7 +18,7 @@ class TestLambdaHandler(unittest.TestCase):
                         'name': 'test-bucket'
                     },
                     'object': {
-                        'key': 'test-image.jpg'
+                        'key': '123e4567-e89b-12d3-a456-426614174000-household123-20240315123456.jpg'
                     }
                 }
             }]
@@ -73,6 +73,27 @@ class TestLambdaHandler(unittest.TestCase):
         # エラーが発生することを確認
         with self.assertRaises(Exception):
             lambda_handler(self.test_event, None)
+
+    def test_lambda_handler_invalid_key_format(self):
+        # 不正なキーフォーマットのイベントを作成
+        invalid_event = {
+            'Records': [{
+                's3': {
+                    'bucket': {
+                        'name': 'test-bucket'
+                    },
+                    'object': {
+                        'key': 'invalid-key-format.jpg'
+                    }
+                }
+            }]
+        }
+
+        # エラーが発生することを確認
+        with self.assertRaises(ValueError) as context:
+            lambda_handler(invalid_event, None)
+        
+        self.assertIn('Invalid S3 key format', str(context.exception))
 
 if __name__ == '__main__':
     unittest.main() 
