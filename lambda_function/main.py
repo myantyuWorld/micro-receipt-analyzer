@@ -20,14 +20,8 @@ def lambda_handler(event, context):
     # 1. 追加されたファイルをpublic-readにする
     s3.put_object_acl(Bucket=bucket, Key=key, ACL='public-read')
 
-    # 2. 一時ファイルにダウンロード
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        try:
-            s3.download_file(bucket, key, temp_file.name)
-            image_url = f"file://{temp_file.name}"
-        except Exception as e:
-            print(f"Error downloading file: {str(e)}")
-            raise
+    # 2. S3のpublic URLを生成
+    image_url = f"https://{bucket}.s3.amazonaws.com/{key}"
 
     # 新しいOpenAIクライアントの初期化
     client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
@@ -50,8 +44,8 @@ def lambda_handler(event, context):
     result = response.choices[0].message.content
     print(result)
 
-    # 一時ファイルの削除
-    os.unlink(temp_file.name)
+    # 一時ファイルの削除処理は不要
+    # os.unlink(temp_file.name)  # ← この行を削除
 
     # ```json
     # {
