@@ -4,6 +4,8 @@ import os
 import tempfile
 from botocore.config import Config
 import re
+import requests
+import json
 
 def lambda_handler(event, context):
     # S3イベントからバケット名・キー取得
@@ -100,8 +102,34 @@ def lambda_handler(event, context):
     # 
     # 上記のような結果が得られたので、この結果を元に、バックエンド側にAPIリクエストして、結果を登録する
     # 
-    # TODO: /openai/receipt/analyze-result にPOSTリクエストして、結果を登録する
-    # この時、keyから抽出したhousehold_idを使用する
+
+    # バックエンドのAPIエンドポイント
+    api_url = f"{os.environ['API_BASE_URL']}/openai/{household_id}/receipt/result"
+    
+    # リクエストヘッダー
+    headers = {
+        "Content-Type": "application/json"
+    }
+    
+    # リクエストボディ
+    payload = {
+        "total": json.loads(result)["total"],
+        "s3FilePath": image_url,
+        "items": [
+            {
+                "name": item["name"],
+                "price": item["price"]
+            }
+            for item in json.loads(result)["items"]
+        ]
+    }
+    
+    # APIリクエストの送信
+    response = requests.post(api_url, headers=headers, json=payload)
+    
+    # レスポンスの確認
+    if response.status_code != 200:
+        raise Exception(f"API request failed with status code: {response.status_code}")
     # 
 
     return {"result": result} 

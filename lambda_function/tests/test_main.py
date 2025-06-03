@@ -5,10 +5,12 @@ import os
 import tempfile
 from main import lambda_handler
 
+# python3 -m unittest tests/test_main.py
 class TestLambdaHandler(unittest.TestCase):
     def setUp(self):
         # テスト用の環境変数を設定
         os.environ['OPENAI_API_KEY'] = 'test-api-key'
+        os.environ['API_BASE_URL'] = 'http://localhost:3000'
         
         # テスト用のS3イベントを作成
         self.test_event = {
@@ -26,7 +28,8 @@ class TestLambdaHandler(unittest.TestCase):
 
     @patch('boto3.client')
     @patch('openai.OpenAI')
-    def test_lambda_handler_success(self, mock_openai, mock_boto3):
+    @patch('requests.post')
+    def test_lambda_handler_success(self, mock_requests_post, mock_openai, mock_boto3):
         # S3クライアントのモック設定
         mock_s3 = MagicMock()
         mock_boto3.return_value = mock_s3
@@ -46,6 +49,11 @@ class TestLambdaHandler(unittest.TestCase):
         })
         mock_openai_client.chat.completions.create.return_value = mock_response
 
+        # requests.postのモック設定
+        mock_post_response = MagicMock()
+        mock_post_response.status_code = 200
+        mock_requests_post.return_value = mock_post_response
+
         # テスト実行
         result = lambda_handler(self.test_event, None)
 
@@ -62,6 +70,19 @@ class TestLambdaHandler(unittest.TestCase):
             image_url,
             f"https://{self.test_event['Records'][0]['s3']['bucket']['name']}.s3.amazonaws.com/{self.test_event['Records'][0]['s3']['object']['key']}"
         )
+        # requests.postが呼ばれているか確認
+        mock_requests_post.assert_called_once()
+
+        # requests.postに渡されたjson（リクエストボディ）を検証
+        called_kwargs = mock_requests_post.call_args[1]
+        expected_payload = {
+            "total": 100,
+            "s3FilePath": "https://test-bucket.s3.amazonaws.com/123e4567-e89b-12d3-a456-426614174000-household123-20240315123456.jpg",
+            "items": [
+                {"name": "テスト商品", "price": 100}
+            ]
+        }
+        self.assertEqual(called_kwargs["json"], expected_payload)
 
     @patch('boto3.client')
     def test_lambda_handler_s3_error(self, mock_boto3):
