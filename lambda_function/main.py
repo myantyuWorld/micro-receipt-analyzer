@@ -12,6 +12,13 @@ def lambda_handler(event, context):
     bucket = event['Records'][0]['s3']['bucket']['name']
     # uuid-household_id-yyyyMMddHHmmss.jpg
     key = event['Records'][0]['s3']['object']['key']
+
+    print("--------------------------------")
+    print("bucket")
+    print(bucket)
+    print("key")
+    print(key)
+    print("--------------------------------")
     
     # household_idを抽出（正規表現で安全に）
     m = re.match(r"^[a-f0-9-]+-(.+?)-\d{14}\.jpg$", key)
@@ -33,6 +40,9 @@ def lambda_handler(event, context):
 
     # 2. S3のpublic URLを生成
     image_url = f"https://{bucket}.s3.amazonaws.com/{key}"
+    print("image_url")
+    print(image_url)
+    print("--------------------------------")
 
     # 新しいOpenAIクライアントの初期化
     client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
