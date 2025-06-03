@@ -80,9 +80,7 @@ def lambda_handler(event, context):
     # 上記のような結果が得られたので、この結果を元に、バックエンド側にAPIリクエストして、結果を登録する
     # 
     try:
-        # コードブロック除去
-        result_clean = re.sub(r"^```json\\s*|```$", "", result.strip(), flags=re.MULTILINE).strip()
-        result_clean = re.sub(r"^```|```$", "", result_clean).strip()
+        result_clean = extract_json_from_result(result)
         data = json.loads(result_clean)
 
         # バックエンドのAPIエンドポイント
@@ -120,3 +118,10 @@ def lambda_handler(event, context):
         raise
 
     return {"result": result} 
+
+def extract_json_from_result(result: str) -> str:
+    # コードブロック（```json ... ``` or ``` ... ```)を除去
+    # 先頭・末尾の```jsonや```をすべて除去し、残りをJSONとして扱う
+    result_clean = re.sub(r"^```(?:json)?[ \t\r\n]*", "", result.strip(), flags=re.IGNORECASE | re.MULTILINE)
+    result_clean = re.sub(r"```$", "", result_clean, flags=re.MULTILINE).strip()
+    return result_clean 

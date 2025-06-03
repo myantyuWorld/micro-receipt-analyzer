@@ -41,12 +41,23 @@ class TestLambdaHandler(unittest.TestCase):
         # OpenAIのレスポンスをモック
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = json.dumps({
-            "items": [
-                {"name": "テスト商品", "price": 100}
-            ],
-            "total": 100
-        })
+        mock_response.choices[0].message.content = """
+        ```json
+        {
+        "items": [
+        {
+            "name": "大根",
+            "price": 105
+        }
+        ,
+        {
+            "name": "姫かま",
+            "price": 150
+        }
+        ],
+        "total": 876
+        }
+        ```"""
         mock_openai_client.chat.completions.create.return_value = mock_response
 
         # requests.postのモック設定
@@ -76,10 +87,11 @@ class TestLambdaHandler(unittest.TestCase):
         # requests.postに渡されたjson（リクエストボディ）を検証
         called_kwargs = mock_requests_post.call_args[1]
         expected_payload = {
-            "total": 100,
+            "total": 876,
             "s3FilePath": "https://test-bucket.s3.amazonaws.com/123e4567-e89b-12d3-a456-426614174000-household123-20240315123456.jpg",
             "items": [
-                {"name": "テスト商品", "price": 100}
+                {"name": "大根", "price": 105},
+                {"name": "姫かま", "price": 150}
             ]
         }
         self.assertEqual(called_kwargs["json"], expected_payload)
