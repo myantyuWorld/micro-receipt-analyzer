@@ -52,6 +52,8 @@ def lambda_handler(event, context):
         max_tokens=1024
     )
 
+    print(response)
+
     result = response.choices[0].message.content
     print(result)
 
@@ -67,69 +69,54 @@ def lambda_handler(event, context):
     # }
     # ,
     # {
-    #     "name": "たまねぎ",
-    #     "price": 105
-    # }
-    # ,
-    # {
-    #     "name": "チョコパンBB",
-    #     "price": 200
-    # }
-    # ,
-    # {
-    #     "name": "ISPポテトS",
-    #     "price": 150
-    # }
-    # ,
-    # {
-    #     "name": "はさソーダ500ML",
-    #     "price": 196
-    # }
-    # ,
-    # {
     #     "name": "姫かま",
     #     "price": 150
     # }
-
     # ],
-    # "discount": {
-    # "percentage": 20,
-    # "amount": -30
-    # },
     # "total": 876
     # }
     # ```
     # 
     # 上記のような結果が得られたので、この結果を元に、バックエンド側にAPIリクエストして、結果を登録する
     # 
+    try:
+        # コードブロック除去
+        result_clean = re.sub(r"^```json\\s*|```$", "", result.strip(), flags=re.MULTILINE).strip()
+        result_clean = re.sub(r"^```|```$", "", result_clean).strip()
+        data = json.loads(result_clean)
 
-    # バックエンドのAPIエンドポイント
-    api_url = f"{os.environ['API_BASE_URL']}/openai/{household_id}/receipt/result"
-    
-    # リクエストヘッダー
-    headers = {
-        "Content-Type": "application/json"
-    }
-    
-    # リクエストボディ
-    payload = {
-        "total": json.loads(result)["total"],
-        "s3FilePath": image_url,
-        "items": [
-            {
-                "name": item["name"],
-                "price": item["price"]
-            }
-            for item in json.loads(result)["items"]
-        ]
-    }
-    
-    # APIリクエストの送信
-    response = requests.post(api_url, headers=headers, json=payload)
-    
-    # レスポンスの確認
-    if response.status_code != 200:
-        raise Exception(f"API request failed with status code: {response.status_code}")
-    # 
+        # バックエンドのAPIエンドポイント
+        api_url = f"{os.environ['API_BASE_URL']}/openai/{household_id}/receipt/result"
+        
+        # リクエストヘッダー
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
+        # リクエストボディ
+        payload = {
+            "total": data["total"],
+            "s3FilePath": image_url,
+            "items": [
+                {
+                    "name": item["name"],
+                    "price": item["price"]
+                }
+                for item in data["items"]
+            ]
+        }
+        
+        # APIリクエストの送信
+        response = requests.post(api_url, headers=headers, json=payload)
+        
+        # レスポンスの確認
+        if response.status_code != 200:
+            raise Exception(f"API request failed with status code: {response.status_code}")
+        # 
+
+    except json.JSONDecodeError as e:
+        print("JSON decode error:", e)
+        print("result:", result)
+        raise
 
     return {"result": result} 
