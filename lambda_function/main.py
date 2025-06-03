@@ -113,6 +113,9 @@ def lambda_handler(event, context):
                 for item in data["items"]
             ]
         }
+        print("payload")
+        print(payload)
+        print("--------------------------------")
         
         # APIリクエストの送信
         response = requests.post(api_url, headers=headers, json=payload)
