@@ -94,7 +94,7 @@ def lambda_handler(event, context):
         data = json.loads(result_clean)
 
         # バックエンドのAPIエンドポイント
-        api_url = f"{os.environ['API_BASE_URL']}/openai/{household_id}/receipt/result"
+        api_url = f"{os.environ['API_BASE_URL']}/openai/analyze/{household_id}/receipt/result"
         
         # リクエストヘッダー
         headers = {
