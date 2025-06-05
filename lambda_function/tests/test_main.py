@@ -20,7 +20,7 @@ class TestLambdaHandler(unittest.TestCase):
                         'name': 'test-bucket'
                     },
                     'object': {
-                        'key': '123e4567-e89b-12d3-a456-426614174000-household123-20240315123456.jpg'
+                        'key': '123e4567-e89b-12d3-a456-426614174000-123-123-20240315123456.jpg'
                     }
                 }
             }]
@@ -88,7 +88,8 @@ class TestLambdaHandler(unittest.TestCase):
         called_kwargs = mock_requests_post.call_args[1]
         expected_payload = {
             "total": 876,
-            "s3FilePath": "https://test-bucket.s3.amazonaws.com/123e4567-e89b-12d3-a456-426614174000-household123-20240315123456.jpg",
+            "categoryID": "123",
+            "s3FilePath": "123e4567-e89b-12d3-a456-426614174000-123-123-20240315123456.jpg",
             "items": [
                 {"name": "大根", "price": 105},
                 {"name": "姫かま", "price": 150}

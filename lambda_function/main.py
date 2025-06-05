@@ -21,11 +21,13 @@ def lambda_handler(event, context):
     print("--------------------------------")
     
     # household_idを抽出（正規表現で安全に）
-    m = re.match(r"^[a-f0-9-]+-(.+?)-\d{14}\.jpg$", key)
+    # uuid-household_id-category_id-yyyyMMddHHmmss.jpg から household_id, category_id を抽出
+    m = re.match(r"^[a-f0-9-]+-(\d+)-(\d+)-\d{14}\.jpg$", key)
     if m:
         household_id = m.group(1)
+        category_id = m.group(2)
     else:
-        raise ValueError(f"Invalid S3 key format: {key}. Expected format: uuid-household_id-yyyyMMddHHmmss.jpg")
+        raise ValueError(f"Invalid S3 key format: {key}. Expected format: uuid-household_id-category_id-yyyyMMddHHmmss.jpg")
 
     # S3クライアントの設定（タイムアウト対策）
     config = Config(
@@ -104,6 +106,7 @@ def lambda_handler(event, context):
         # リクエストボディ
         payload = {
             "total": data["total"],
+            "categoryID": category_id,
             "s3FilePath": key,
             "items": [
                 {
