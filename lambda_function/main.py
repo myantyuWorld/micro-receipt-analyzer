@@ -106,7 +106,7 @@ def lambda_handler(event, context):
         # リクエストボディ
         payload = {
             "total": data["total"],
-            "categoryID": category_id,
+            "categoryID": int(category_id),
             "s3FilePath": key,
             "items": [
                 {
